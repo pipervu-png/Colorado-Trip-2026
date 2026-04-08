@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Silverthorne Colorado May 2026 — Adventure Awaits</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600&family=Caveat:wght@600&display=swap" rel="stylesheet" />
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyCbdW3IIRqxl5RAdE1X7ZojQtiunb06bTc",
+      authDomain: "colorado-trip-e2ebd.firebaseapp.com",
+      databaseURL: "https://colorado-trip-e2ebd-default-rtdb.firebaseio.com",
+      projectId: "colorado-trip-e2ebd",
+      storageBucket: "colorado-trip-e2ebd.firebasestorage.app",
+      messagingSenderId: "148350333165",
+      appId: "1:148350333165:web:00beaf9e7977c0216fdce4"
+    });
+    const db = firebase.database();
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1700,9 +1715,14 @@
     ]},
   ];
 
-  let packData = JSON.parse(localStorage.getItem('co-trip-pack') || 'null') || DEFAULT_PACK;
+  let packData = DEFAULT_PACK;
 
-  function savePack() { localStorage.setItem('co-trip-pack', JSON.stringify(packData)); }
+  db.ref('pack').on('value', snap => {
+    packData = snap.val() || DEFAULT_PACK;
+    renderPackList();
+  });
+
+  function savePack() { db.ref('pack').set(packData); }
 
   function renderPackList() {
     document.getElementById('pack-grid').innerHTML = packData.map(cat => `
@@ -1768,9 +1788,14 @@
     {id:1008, text:'Sunscreen (shared)',   claimedBy:null, packed:false},
   ];
 
-  let gearData = JSON.parse(localStorage.getItem('co-trip-gear') || 'null') || DEFAULT_GEAR;
+  let gearData = DEFAULT_GEAR;
 
-  function saveGear() { localStorage.setItem('co-trip-gear', JSON.stringify(gearData)); }
+  db.ref('gear').on('value', snap => {
+    gearData = snap.val() || DEFAULT_GEAR;
+    renderGearList();
+  });
+
+  function saveGear() { db.ref('gear').set(gearData); }
 
   function renderGearList() {
     const grid = document.getElementById('gear-grid');
@@ -1833,8 +1858,6 @@
     showToast(`"${text}" added to group gear!`);
   }
 
-  renderGearList();
-
   // Toast
   function showToast(msg) {
     const t = document.getElementById('toast');
@@ -1883,11 +1906,13 @@
   const INFO_FIELDS = ['address','door','airbnb','checkin','wifi','notes'];
 
   function loadInfo() {
-    const saved = JSON.parse(localStorage.getItem('co-trip-info') || '{}');
-    INFO_FIELDS.forEach(k => {
-      const val = saved[k] || '';
-      document.getElementById(`fld-${k}`).value = val;
-      renderInfoVal(k, val);
+    db.ref('info').on('value', snap => {
+      const saved = snap.val() || {};
+      INFO_FIELDS.forEach(k => {
+        const val = saved[k] || '';
+        document.getElementById(`fld-${k}`).value = val;
+        renderInfoVal(k, val);
+      });
     });
   }
 
@@ -1913,7 +1938,7 @@
       data[k] = document.getElementById(`fld-${k}`).value.trim();
       renderInfoVal(k, data[k]);
     });
-    localStorage.setItem('co-trip-info', JSON.stringify(data));
+    db.ref('info').set(data);
     document.querySelector('.info-section').classList.remove('editing');
     document.getElementById('edit-info-btn').style.display = '';
     document.getElementById('save-info-btn').style.display = 'none';
@@ -1923,11 +1948,14 @@
   loadInfo();
 
   // ── EXPENSE TRACKER ─────────────────────────────────
-  let expenses = JSON.parse(localStorage.getItem('co-trip-expenses') || '[]');
+  let expenses = [];
 
-  function saveExpenses() {
-    localStorage.setItem('co-trip-expenses', JSON.stringify(expenses));
-  }
+  db.ref('expenses').on('value', snap => {
+    expenses = snap.val() || [];
+    renderExpenses();
+  });
+
+  function saveExpenses() { db.ref('expenses').set(expenses); }
 
   function renderSplitPills() {
     document.getElementById('split-pills').innerHTML = MEMBERS.map(m =>
@@ -2043,7 +2071,6 @@
   }
 
   renderSplitPills();
-  renderExpenses();
 
   // ── CONFETTI KEYFRAME ────────────────────────────────
   const style = document.createElement('style');
